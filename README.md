@@ -5,8 +5,8 @@ This repo gives an example for Buildx multi-arch capabilities.
 ## Why multi-arch
 
 Use-cases:
-- dockerized internal tool (intended to run on Intel-based and Apple Silicon machines)
-- build on x_86 for ARM and vica-versa (ex. from Intel laptop to your RaspberryPi home lab)
+- dockerized internal tool (intended to run on x86-based and Apple Silicon machines)
+- build on x86 for ARM and vica-versa (ex. from x86 laptop to your RaspberryPi home lab)
 - using ARM-based cloud services (Google TAU, AWS Graviton, etc)
 
 ## How it works?
@@ -15,17 +15,17 @@ Docker Desktop (Mac, Windows, Linux) contains [QEMU](https://www.qemu.org/) whic
 
 ## Cross-build with `docker build` (Docker Desktop)
 
-> **_NOTICE:_** I do this how-to on an Apple Silicon machine if not stated otherwise.
+> **Note** I do this how-to on an Apple Silicon machine if not stated otherwise, but you can follow it on any system with Docker Desktop running.
 
-For convenience I will set the image repository as an env variable. If you follow along the commands will just work as is.
+For convenience I will set the image repository as an env variable, so if you follow along the commands will just work as is.
 ```bash
 export IMAGE_REPO=iben12/multi-arch-demo
 ```
 
-By default docker detects your current platform and will build for that using base images if they're available.
+By default docker detects your current platform and will build for that using platform-specific base images if they're available.
 ```bash
 docker build -t ${IMAGE_REPO}:native .
-...
+# ...
 docker run --rm ${IMAGE_REPO}:native arch
 # aarch64 or x86_64 depending on your environment
 ```
@@ -35,21 +35,21 @@ Since Docker Desktop installs QEMU by default, you can just use the `docker buil
 From ARM to x86
 ```bash
 docker build --platform linux/amd64 -t ${IMAGE_REPO}:amd64 .
-...
+# ...
 docker run --rm ${IMAGE_REPO}:amd64 arch
 # x86_64
 ```
 or from x86 to ARM
 ```bash
 docker build --platform linux/arm64 -t ${IMAGE_REPO}:arm64 .
-...
+# ...
 docker run --rm ${IMAGE_REPO}:arm64 arch
 # aarch64
 ```
 
-> **_NOTE:_** This won't work on default Docker Engine installs on Linux systems, but we're going to come back to it later.
+> **Note** This won't work on default Docker Engine installs on Linux systems, but we're going to come back to it later.
 
-Let's see how can we distribute these images:
+Let's see how can we distribute these images.
 
 Tag our native image with the corresponding platform:
 ```bash
@@ -101,7 +101,7 @@ docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE_REPO}:multi-ar
 
 That worked this time.
 
-> **_WARNING_**: This will still fail on Linux systems not runnig Docker Desktop, because QEMU is needed for cross-build. We will solve that in the next section.
+> **Warning**: This will still fail on Linux systems not runnig Docker Desktop, because QEMU is needed for cross-build. We will solve that in the next section.
 
 We may also notice that this started a new docker container which is the actual buildx instance where the build runs:
 ```bash
@@ -137,7 +137,7 @@ If we look at our repo now, we will see a single image tag containing the images
 
 ![img](assets/repo2.png)
 
-OK, but what is that _manifest list_? This is exactly what makes it multi-arch possible: it's a JSON file describing the images for all platforms we built for. We can see that with the `imagetools` command.
+OK, but what is that _manifest list_? This is exactly what makes multi-platform possible: it's a JSON file describing the images for all platforms we built for. We can see that with the `imagetools` command in human readable format.
 ```bash
 docker buildx imagetools inspect ${IMAGE_REPO}:multi-arch
 ```
@@ -161,9 +161,11 @@ As we can see it contains the manifests for both platforms. This makes it possib
 
 ## Buildx multi-arch (Docker Engine on Linux)
 
-> **_NOTICE:_** Here I switch to a x86 Linux VM in the cloud that runs on Debian Bullseye, Docker is installed via the [convenience script](https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script).
+Now let's make this without Docker Desktop so we can run it anywhere without a desktop environment.
 
-I will clone our working repository on the machine by (you may need to install `git cli`):
+> **Note** Here I switch to a x86 Linux VM in the cloud that runs on Debian Bullseye, Docker is installed via the [convenience script](https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script).
+
+I will clone our working repository on the machine by (you may need to install `git`):
 ```bash
 git clone https://github.com/iben12/multi-arch-build.git
 
@@ -203,7 +205,7 @@ default       docker
   default     default                     running linux/amd64, linux/386
 ```
 
-As we see, our builders are only able to build for x86 platforms. If we compare it to the output on machine with Docker Desktop we see the following:
+As we see, our builders are only able to build for x86 platforms. If we compare it to the output on a machine with Docker Desktop we see the following:
 ```
 NAME/NODE       DRIVER/ENDPOINT             STATUS  PLATFORMS
 multi-arch *    docker-container                    
@@ -217,7 +219,7 @@ default         docker
 As you may expect, we need the emulator to go forward. [Docker Docs](https://docs.docker.com/build/buildx/multiplatform-images/) describes it this way:
 > QEMU is the easiest way to get started if your node already supports it (for example. if you are using Docker Desktop). It requires no changes to your Dockerfile and BuildKit automatically detects the secondary architectures that are available. When BuildKit needs to run a binary for a different architecture, it automatically loads it through a binary registered in the `binfmt_misc` handler.
 
-Fortunately Tonis Stiigi created a simple image to install and register all needed components:
+Fortunately Tõnis Stiigi created a simple image to install and register all needed components:
 ```bash
 docker run --privileged --rm tonistiigi/binfmt --install all
 ```
@@ -234,7 +236,7 @@ default       docker
   default     default                     running linux/amd64, linux/386, linux/arm64, linux/riscv64, linux/ppc64le, linux/s390x, linux/arm/v7, linux/arm/v6
 ```
 
-We're ready to build and push our image to the registry from here now, except we need to docker login if didn't yet:
+Now we're ready to build and push our image to the registry from here, except we need to docker login if didn't yet:
 ```bash
 docker login
 
@@ -251,13 +253,13 @@ We see the new tag and the images for both platforms as expected:
 
 ![img](assets/repo3.png)
 
-That's fine, but we don't usually just build our images on our laptops, so how do we intagrate this into the CI pipeline?
+That's fine, but we don't usually just build our images on our laptops, so how do we integrate this into a CI pipeline?
 
 ## Automate multi-arch build (with GitHub Actions)
 
-To achive this we have to set up the CI build environment the same way as we did on our Linux box. Well, that's a bit complicated (doable, however), but fortunately GitHub Actions has a [marketplace](https://github.com/marketplace?type=actions) of prebuild actions where there is one (or more) for our purpose: [crazy-max/ghaction-docker-buildx@v1](https://github.com/marketplace/actions/docker-buildx) that takes care about installing Buildx, QEMU and configuring the whole multi-platform environment for us.
+To achive this we have to set up the CI build environment the same way as we did on our Linux box. Well, that's a bit complicated (doable, however), but fortunately GitHub Actions has a [marketplace](https://github.com/marketplace?type=actions) of prebuilt actions where there is one (or more) for our purpose: [crazy-max/ghaction-docker-buildx@v1](https://github.com/marketplace/actions/docker-buildx). It takes care about installing Buildx, QEMU and configuring the whole multi-platform environment for us.
 
-Look at the [build.yaml](.github/workflows/build.yml) file. The insteresting part happens here:
+Look at the [build.yaml](.github/workflows/build.yml) file that configures our workflow. The insteresting part happens here:
 ```yaml
       - name: Install buildx
         id: buildx
@@ -277,8 +279,14 @@ Look at the [build.yaml](.github/workflows/build.yml) file. The insteresting par
             --platform linux/amd64,linux/arm/v7,linux/arm64 .
 ```
 
-First we `Install buildx` with the mentioned prebuilt action, then we `Login to Docker Hub` with the next one, finally we build the multi-platform image with the now familiar command and tag it with the commit hash.
+First we `Install buildx` with the mentioned prebuilt action, then we `Login to Docker Hub` with the next one and finally we build the multi-platform image with the now familiar command and tag it with the commit hash.
 
-> **_NOTICE:_** For the login step you have to set up **secrets** with your docker credentials (username and a generated token) in your repository. To do this on GitHub go to **Settings -> Secrets (left side menu) -> Actions (from the drop-down)**.
+> **Note** For the login step you have to set up **secrets** with your docker credentials (username and a generated token) in your repository. To do this on GitHub go to **Settings -> Secrets (left side menu) -> Actions (from the drop-down)**.
 
-When we push this into our repository, it will trigger our workflow and at the end we will have our new tag in the Docker Registry.
+When we push this into our repository, it will trigger our workflow:
+
+![img](assets/action.png)
+
+And we have our new tag in the Docker Registry:
+
+![img](assets/repo4.png)
