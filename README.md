@@ -290,3 +290,5 @@ When we push this into our repository, it will trigger our workflow:
 And we have our new tag in the Docker Registry:
 
 ![img](assets/repo4.png)
+
+Hello Vienna!
