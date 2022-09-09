@@ -219,7 +219,7 @@ default         docker
 As you may expect, we need the emulator to go forward. [Docker Docs](https://docs.docker.com/build/buildx/multiplatform-images/) describes it this way:
 > QEMU is the easiest way to get started if your node already supports it (for example. if you are using Docker Desktop). It requires no changes to your Dockerfile and BuildKit automatically detects the secondary architectures that are available. When BuildKit needs to run a binary for a different architecture, it automatically loads it through a binary registered in the `binfmt_misc` handler.
 
-Fortunately Tõnis Stiigi created a simple image to install and register all needed components:
+Fortunately Tõnis Tiigi created a simple image to install and register all needed components:
 ```bash
 docker run --privileged --rm tonistiigi/binfmt --install all
 ```
