@@ -291,4 +291,5 @@ And we have our new tag in the Docker Registry:
 
 ![img](assets/repo4.png)
 
-Hello Vienna!
+Hello EPAM!
+
